@@ -1,0 +1,31 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build and run loopback tests
+        run: ./test.sh
+      - name: Check publication privacy
+        run: python3 scripts/privacy_check.py
+      - name: Build universal application
+        run: UNIVERSAL=1 ./build-app.sh
+      - name: Package application without extended attributes
+        run: |
+          COPYFILE_DISABLE=1 ditto -c -k --norsrc --noextattr --keepParent "dist/Yeelight Screen Sync.app" dist/Yeelight-Screen-Sync-macOS.zip
+      - name: Upload build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Yeelight-Screen-Sync-macOS
+          path: dist/Yeelight-Screen-Sync-macOS.zip
+          retention-days: 14

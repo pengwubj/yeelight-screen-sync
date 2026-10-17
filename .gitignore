@@ -1,0 +1,15 @@
+.build/
+dist/
+*.app/
+__pycache__/
+*.log
+.DS_Store
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.mobileprovision
+*.xcuserstate
+xcuserdata/
+*.zip
