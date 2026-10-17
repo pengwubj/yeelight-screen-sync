@@ -2,6 +2,27 @@ import SwiftUI
 import AppKit
 import ScreenCaptureKit
 
+struct LightColorPreset: Identifiable {
+    let name: String
+    let rgb: Int
+    var id: Int { rgb }
+
+    static let all: [LightColorPreset] = [
+        .init(name:"红色",rgb:0xff0000), .init(name:"珊瑚红",rgb:0xff6b6b),
+        .init(name:"玫红",rgb:0xff1493), .init(name:"粉红",rgb:0xff69b4),
+        .init(name:"橙色",rgb:0xff8800), .init(name:"琥珀",rgb:0xffbf00),
+        .init(name:"金色",rgb:0xffd700), .init(name:"柠檬黄",rgb:0xffff00),
+        .init(name:"草绿",rgb:0xadff2f), .init(name:"绿色",rgb:0x00ff00),
+        .init(name:"薄荷绿",rgb:0x00ffaa), .init(name:"青色",rgb:0x00ffff),
+        .init(name:"天蓝",rgb:0x00bfff), .init(name:"冰蓝",rgb:0x87cefa),
+        .init(name:"宝蓝",rgb:0x4169e1), .init(name:"蓝色",rgb:0x0000ff),
+        .init(name:"靛蓝",rgb:0x4b0082), .init(name:"紫色",rgb:0x9900ff),
+        .init(name:"薰衣草",rgb:0xb57edc), .init(name:"洋红",rgb:0xff00ff),
+        .init(name:"暖白",rgb:0xffe4b5), .init(name:"自然白",rgb:0xfff5e1),
+        .init(name:"冷白",rgb:0xe0f7ff), .init(name:"白色",rgb:0xffffff)
+    ]
+}
+
 struct ControlCard<Content:View>: View {
     let title: String
     let symbol: String
@@ -74,11 +95,16 @@ struct ContentView: View {
                         }
                         ColorPicker("颜色",selection:Binding(get:{model.ambientColor},set:{model.chooseColor($0)}),supportsOpacity:false)
                             .disabled(!model.connected || model.busy || model.syncing || !model.ambientOn)
-                        HStack(spacing:12) {
-                            ForEach(Array([0xff0000,0xff8800,0x00ff00,0x00ffff,0x0000ff,0x9900ff,0xffffff].enumerated()),id:\.offset) { index,hex in
-                                Button { model.chooseColor(RGB(packed:hex).color) } label: {
-                                    Circle().fill(RGB(packed:hex).color).frame(width:23,height:23).overlay(Circle().stroke(.white.opacity(0.2)))
-                                }.buttonStyle(.plain).accessibilityLabel(["红色","橙色","绿色","青色","蓝色","紫色","白色"][index])
+                        LazyVGrid(columns:Array(repeating:GridItem(.flexible(),spacing:6),count:8),spacing:8) {
+                            ForEach(LightColorPreset.all) { preset in
+                                Button { model.chooseColor(RGB(packed:preset.rgb).color) } label: {
+                                    Circle().fill(RGB(packed:preset.rgb).color)
+                                        .frame(width:26,height:26)
+                                        .overlay(Circle().stroke(.white.opacity(RGB(color:model.ambientColor).packed == preset.rgb ? 1 : 0.25),lineWidth:RGB(color:model.ambientColor).packed == preset.rgb ? 2 : 1))
+                                        .frame(maxWidth:.infinity,minHeight:32)
+                                        .contentShape(Rectangle())
+                                }.buttonStyle(.plain).accessibilityLabel(preset.name)
+                                    .help("\(preset.name) · \(RGB(packed:preset.rgb).hex)")
                             }
                         }.disabled(!model.connected || model.busy || model.syncing || !model.ambientOn)
                     }
@@ -197,7 +223,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     var body: some Scene {
         WindowGroup("Yeelight 控制台") { ContentView().environmentObject(model) }
-            .defaultSize(width:900,height:780)
+            .defaultSize(width:900,height:900)
             .commands {
                 CommandGroup(replacing:.newItem) {}
                 CommandMenu("灯光") {

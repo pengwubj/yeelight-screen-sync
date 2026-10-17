@@ -16,7 +16,7 @@ Control the main lamp and ambient backlight from one SwiftUI window. Match the a
 | --- | --- |
 | Connection bar | LAN discovery, device selection, explicit IP, connection status |
 | Main lamp | Power, brightness, colour temperature |
-| Ambient backlight | Independent power, brightness, colour picker, seven exact sRGB presets |
+| Ambient backlight | Independent power, brightness, colour picker, 24 exact sRGB presets |
 | Screen sync | Display selection, 5/10/20 Hz limit, smoothing, live colour preview, start/stop |
 
 ![Screen sync, using offline demonstration data](docs/images/screen-sync.jpg)

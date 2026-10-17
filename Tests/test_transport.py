@@ -98,9 +98,10 @@ class LampSimulator:
         for thread in self.threads:
             thread.start()
         try:
+            # Hosted macOS may delay timer wakeups; still require all 400 updates.
             result = subprocess.run(['.build/TransportCheck', '127.0.0.1',
                                      str(self.tcp.getsockname()[1]), str(self.udp.getsockname()[1]), self.mode],
-                                    timeout=55, capture_output=True, text=True)
+                                    timeout=120, capture_output=True, text=True)
             if result.returncode:
                 raise AssertionError(result.stderr)
             return result.stdout
