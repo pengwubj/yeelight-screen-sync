@@ -25,13 +25,14 @@ extension Int {
 }
 
 enum ColorAnalysis {
-    // Hue population preserves strong screen colours rather than averaging red/blue to grey.
-    // Neutral scenes fall back to their mean. Black bars and the outer 5% are ignored.
+    // Area-based hue voting, with neutrals competing as their own candidate.
+    // Near-black pixels and the outer 5% are ignored; selected RGB retains its intensity.
     static func dominant(bgra: UnsafePointer<UInt8>, width: Int, height: Int, stride: Int) -> RGB {
         guard width > 0, height > 0, stride >= width * 4 else { return RGB(0,0,0) }
         var sums = Array(repeating: [Double](repeating: 0, count: 4), count: 24)
         var mean = RGB(0,0,0)
-        var count = 0, colourful = 0, sampled = 0
+        var neutral = RGB(0,0,0)
+        var count = 0, neutralCount = 0, sampled = 0
         for y in max(0,height/20)..<max(1,height-height/20) {
             for x in max(0,width/20)..<max(1,width-width/20) {
                 let p = bgra + y*stride + x*4
@@ -41,23 +42,24 @@ enum ColorAnalysis {
                 if hi < 20 { continue }
                 mean.r += r; mean.g += g; mean.b += b; count += 1
                 let saturation = delta/hi
-                if saturation < 0.22 { continue }
-                colourful += 1
+                if saturation < 0.22 {
+                    neutral.r += r; neutral.g += g; neutral.b += b; neutralCount += 1
+                    continue
+                }
                 var hue: Double
                 if hi == r { hue = (g-b)/delta }
                 else if hi == g { hue = (b-r)/delta+2 }
                 else { hue = (r-g)/delta+4 }
                 if hue < 0 { hue += 6 }
                 let bin = min(23,Int(hue*4))
-                let weight = 0.5+0.5*saturation
-                sums[bin][0] += weight
-                sums[bin][1] += r*weight
-                sums[bin][2] += g*weight
-                sums[bin][3] += b*weight
+                sums[bin][0] += 1
+                sums[bin][1] += r
+                sums[bin][2] += g
+                sums[bin][3] += b
             }
         }
         guard count > 0, Double(count)/Double(max(1,sampled)) > 0.10 else { return RGB(0,0,0) }
-        if Double(colourful)/Double(count) >= 0.08 {
+        do {
             // Adjacent hue buckets count together, avoiding an artificial boundary at red.
             let winner = (0..<24).max { a,b in
                 let wa = sums[(a+23)%24][0]+sums[a][0]+sums[(a+1)%24][0]
@@ -68,10 +70,14 @@ enum ColorAnalysis {
             for index in [(winner+23)%24,winner,(winner+1)%24] {
                 for k in 0..<4 { combined[k] += sums[index][k] }
             }
-            if combined[0] > 0 {
-                let result = RGB(combined[1]/combined[0],combined[2]/combined[0],combined[3]/combined[0])
-                let scale = 255/max(result.r,result.g,result.b,1)
-                return RGB(result.r*scale,result.g*scale,result.b*scale)
+            // Small accents must not dominate a mostly grey/white desktop. Require a
+            // candidate to occupy at least 20% of visible pixels; ties prefer neutral.
+            let minimumArea = Double(count)*0.20
+            if Double(neutralCount) >= max(minimumArea,combined[0]) {
+                return RGB(neutral.r/Double(neutralCount),neutral.g/Double(neutralCount),neutral.b/Double(neutralCount))
+            }
+            if combined[0] >= minimumArea {
+                return RGB(combined[1]/combined[0],combined[2]/combined[0],combined[3]/combined[0])
             }
         }
         return RGB(mean.r/Double(count),mean.g/Double(count),mean.b/Double(count))

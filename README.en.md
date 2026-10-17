@@ -23,6 +23,8 @@ Control the main lamp and ambient backlight from one SwiftUI window. Match the a
 
 Manual colour and ambient power controls are disabled while syncing; brightness remains adjustable. Stop preserves the last colour. Closing the last window exits the app and ends capture.
 
+Colour extraction downsamples to 128 pixels wide, skips the outer 5% and near-black pixels, and votes by area across 24 hue bins with adjacent bins combined. Low-saturation pixels compete as a neutral candidate, so small coloured accents cannot override a neutral majority. Candidates need 20% of visible pixels; otherwise the mean is used. Selected RGB intensity is preserved before temporal smoothing, rather than normalized to full intensity. The brightness slider remains independent. This is a single-colour estimate, not display-to-light calibration; black bars and near-black scene content are both ignored.
+
 Screenshots use `--demo`, which performs no network or screen operations. The address, display name, counters and device state are synthetic. `192.0.2.42` is a documentation address.
 
 ## Requirements
